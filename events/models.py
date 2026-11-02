@@ -1,3 +1,48 @@
+from django.conf import settings
+from django.core.exceptions import ValidationError
+from django.core.validators import MinValueValidator
 from django.db import models
 
-# Create your models here.
+
+class Event(models.Model):
+    class Status(models.TextChoices):
+        DRAFT = "draft", "Draft"
+        PUBLISHED = "published", "Published"
+        CLOSED = "closed", "Closed"
+        FINISHED = "finished", "Finished"
+
+
+    ALLOWED_TRANSITIONS = {
+        Status.DRAFT: [Status.PUBLISHED],
+        Status.PUBLISHED: [Status.CLOSED],
+        Status.CLOSED: [Status.FINISHED],
+        Status.FINISHED: [],
+    }
+
+    organizer = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="events",
+    )
+    title = models.CharField(max_length=200)
+    description = models.TextField(blank=True)
+    start_time = models.DateTimeField()
+    end_time = models.DateTimeField()
+    capacity = models.PositiveIntegerField(validators=[MinValueValidator(1)])
+    status = models.CharField(
+        max_length=20,
+        choices=Status.choices,
+        default=Status.DRAFT,
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return self.title
+
+    def can_transition_to(self, new_status):
+        return new_status in self.ALLOWED_TRANSITIONS[self.status]
+
+    def clean(self):
+        if self.start_time and self.end_time and self.end_time <= self.start_time:
+            raise ValidationError("end_time must be after start_time.")
