@@ -18,7 +18,7 @@ INSTALLED_APPS = [
     "events",
     "users",
     "feedback",
-    "registration",
+    "registrations",
     "attributes",
 ]
 
