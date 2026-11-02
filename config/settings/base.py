@@ -20,6 +20,8 @@ INSTALLED_APPS = [
     "feedback",
     "registrations",
     "attributes",
+    "stages",
+    "results",
 ]
 
 MIDDLEWARE = [
