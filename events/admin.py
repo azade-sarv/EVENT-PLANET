@@ -10,7 +10,10 @@ class EventAdmin(admin.ModelAdmin):
         "organizer",
         "status",
         "capacity",
-        "start_time"
+        "confirmed_count",
+        "available_spots",
+        "average_rating",
+        "start_time",
     )
     list_filter = ("status",)
     search_fields = ("title",)

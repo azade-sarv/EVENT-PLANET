@@ -2,6 +2,7 @@ from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.core.validators import MinValueValidator
 from django.db import models
+from django.db.models.aggregates import Avg
 
 
 class Event(models.Model):
@@ -42,6 +43,15 @@ class Event(models.Model):
 
     def can_transition_to(self, new_status):
         return new_status in self.ALLOWED_TRANSITIONS[self.status]
+
+    @property
+    def average_rating(self):
+        avg = self.registrations.aggregate(avg=Avg("feedback__rating"))["avg"]
+        return round(avg, 2) if avg is not None else None
+
+    @property
+    def feedback_count(self):
+        return self.registrations.filter(feedback__isnull=False).count()
 
     @property
     def confirmed_count(self):
