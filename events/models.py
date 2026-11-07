@@ -43,6 +43,14 @@ class Event(models.Model):
     def can_transition_to(self, new_status):
         return new_status in self.ALLOWED_TRANSITIONS[self.status]
 
+    @property
+    def confirmed_count(self):
+        return self.registrations.filter(status="confirmed").count()
+
+    @property
+    def available_spots(self):
+        return max(self.capacity - self.confirmed_count, 0)
+
     def clean(self):
         if self.start_time >= self.end_time:
             raise ValidationError("Start time must be before end time.")
