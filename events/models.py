@@ -44,5 +44,13 @@ class Event(models.Model):
         return new_status in self.ALLOWED_TRANSITIONS[self.status]
 
     def clean(self):
-        if self.start_time and self.end_time and self.end_time <= self.start_time:
-            raise ValidationError("end_time must be after start_time.")
+        if self.start_time >= self.end_time:
+            raise ValidationError("Start time must be before end time.")
+
+        if self.capacity < 1:
+            raise ValidationError("Capacity must be at least 1.")
+
+        if not self.can_transition_to(self.status):
+            raise ValidationError(
+                f"Cannot transition from {self.status} to {self.status}."
+            )
