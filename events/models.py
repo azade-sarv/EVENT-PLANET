@@ -62,13 +62,31 @@ class Event(models.Model):
         return max(self.capacity - self.confirmed_count, 0)
 
     def clean(self):
+        errors = {}
+
         if self.start_time >= self.end_time:
-            raise ValidationError("Start time must be before end time.")
+            errors["end_time"] = "Start time must be before end time."
 
         if self.capacity < 1:
-            raise ValidationError("Capacity must be at least 1.")
+            errors["capacity"] = "Capacity must be at least 1."
 
-        if not self.can_transition_to(self.status):
-            raise ValidationError(
-                f"Cannot transition from {self.status} to {self.status}."
+        if self.pk:
+            previous_status = (
+                type(self).objects
+                .filter(pk=self.pk)
+                .values_list("status", flat=True)
+                .first()
             )
+
+            if previous_status is not None and self.status != previous_status:
+                allowed_statuses = self.ALLOWED_TRANSITIONS.get(previous_status, [])
+                if self.status not in allowed_statuses:
+                    errors["status"] = (
+                        f"Cannot transition from {previous_status} "
+                        f"to {self.status}."
+                    )
+        elif self.status != self.Status.DRAFT:
+            errors["status"] = "New events must start as Draft."
+
+        if errors:
+            raise ValidationError(errors)
