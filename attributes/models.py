@@ -12,15 +12,30 @@ class Attribute(models.Model):
         BOOLEAN = "boolean", "Boolean"
         DATE = "date", "Date"
 
-    name = models.CharField(max_length=100, unique=True)
-    data_type = models.CharField(max_length=20, choices=DataType.choices)
+    event = models.ForeignKey(
+        Event,
+        on_delete=models.CASCADE,
+        related_name="attributes",
+    )
+    name = models.CharField(max_length=100)
+    data_type = models.CharField(
+        max_length=20,
+        choices=DataType.choices,
+    )
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=["event", "name"],
+                name="unique_attribute_name_per_event",
+            )
+        ]
 
     def __str__(self):
-        return f"{self.name} ({self.data_type})"
+        return f"{self.event.title} - {self.name}"
 
 
 class EventAttributeValue(models.Model):
-
     VALUE_FIELDS = {
         "string": "value_string",
         "integer": "value_integer",
@@ -29,48 +44,45 @@ class EventAttributeValue(models.Model):
         "date": "value_date",
     }
 
-    event = models.ForeignKey(
-        Event,
-        on_delete=models.CASCADE,
-        related_name="attribute_values",
-    )
-    attribute = models.ForeignKey(
+    attribute = models.OneToOneField(
         Attribute,
-        on_delete=models.PROTECT,
-        related_name="event_values",
+        on_delete=models.CASCADE,
+        related_name="value",
     )
-    value_string = models.CharField(max_length=255, null=True, blank=True)
+
+    value_string = models.CharField(
+        max_length=255,
+        null=True,
+        blank=True,
+    )
     value_integer = models.IntegerField(null=True, blank=True)
     value_decimal = models.DecimalField(
-        max_digits=12, decimal_places=4, null=True, blank=True
+        max_digits=12,
+        decimal_places=4,
+        null=True,
+        blank=True,
     )
     value_boolean = models.BooleanField(null=True, blank=True)
     value_date = models.DateField(null=True, blank=True)
 
-    class Meta:
-        constraints = [
-            models.UniqueConstraint(
-                fields=["event", "attribute"],
-                name="unique_attribute_per_event",
-            )
-        ]
-
-    def __str__(self):
-        return f"{self.event} | {self.attribute.name} = {self.value}"
-
     @property
     def value(self):
-        return getattr(self, self.VALUE_FIELDS[self.attribute.data_type])
+        field = self.VALUE_FIELDS[self.attribute.data_type]
+        return getattr(self, field)
 
     def clean(self):
         if not self.attribute_id:
             return
-        expected = self.VALUE_FIELDS[self.attribute.data_type]
-        filled = [
-            f for f in self.VALUE_FIELDS.values() if getattr(self, f) is not None
+
+        expected_field = self.VALUE_FIELDS[self.attribute.data_type]
+
+        filled_fields = [
+            field
+            for field in self.VALUE_FIELDS.values()
+            if getattr(self, field) is not None
         ]
-        if filled != [expected]:
+
+        if filled_fields != [expected_field]:
             raise ValidationError(
-                f"Exactly one value is required, in '{expected}' "
-                f"(attribute type: {self.attribute.data_type})."
+                f"Only {expected_field} must contain a value."
             )
