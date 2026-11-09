@@ -12,5 +12,9 @@ class AttributeAdmin(admin.ModelAdmin):
 
 @admin.register(EventAttributeValue)
 class EventAttributeValueAdmin(admin.ModelAdmin):
-    list_display = ("event", "attribute", "value")
+    list_display = ("event_name", "attribute", "value")
     list_filter = ("attribute",)
+
+    @admin.display(description="event")
+    def event_name(self, obj):
+        return obj.attribute.event

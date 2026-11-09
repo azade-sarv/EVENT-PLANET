@@ -16,6 +16,7 @@ class Attribute(models.Model):
         Event,
         on_delete=models.CASCADE,
         related_name="attributes",
+        default=None,
     )
     name = models.CharField(max_length=100)
     data_type = models.CharField(
