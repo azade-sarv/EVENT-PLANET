@@ -1,8 +1,29 @@
 from django.conf import settings
+from django.apps import apps
 from django.core.exceptions import ValidationError
 from django.core.validators import MinValueValidator
 from django.db import models
 from django.db.models.aggregates import Avg
+
+
+def get_deleted_user():
+    User = apps.get_model(settings.AUTH_USER_MODEL)
+
+    user, created = User.objects.get_or_create(
+        username="deleted_user",
+        defaults={
+            "first_name": "Deleted",
+            "last_name": "User",
+            "is_active": False,
+            "role": "PARTICIPANT",
+        },
+    )
+
+    if user.is_active:
+        user.is_active = False
+        user.save(update_fields=["is_active"])
+
+    return user
 
 
 class Event(models.Model):
@@ -11,7 +32,6 @@ class Event(models.Model):
         PUBLISHED = "published", "Published"
         CLOSED = "closed", "Closed"
         FINISHED = "finished", "Finished"
-
 
     ALLOWED_TRANSITIONS = {
         Status.DRAFT: [Status.PUBLISHED],
@@ -22,14 +42,17 @@ class Event(models.Model):
 
     organizer = models.ForeignKey(
         settings.AUTH_USER_MODEL,
-        on_delete=models.CASCADE,
+        on_delete=models.SET(get_deleted_user),
         related_name="events",
     )
+
     title = models.CharField(max_length=200)
     description = models.TextField(blank=True)
     start_time = models.DateTimeField()
     end_time = models.DateTimeField()
-    capacity = models.PositiveIntegerField(validators=[MinValueValidator(1)])
+    capacity = models.PositiveIntegerField(
+        validators=[MinValueValidator(1)]
+    )
     status = models.CharField(
         max_length=20,
         choices=Status.choices,
@@ -46,16 +69,22 @@ class Event(models.Model):
 
     @property
     def average_rating(self):
-        avg = self.registrations.aggregate(avg=Avg("feedback__rating"))["avg"]
+        avg = self.registrations.aggregate(
+            avg=Avg("feedback__rating")
+        )["avg"]
         return round(avg, 2) if avg is not None else None
 
     @property
     def feedback_count(self):
-        return self.registrations.filter(feedback__isnull=False).count()
+        return self.registrations.filter(
+            feedback__isnull=False
+        ).count()
 
     @property
     def confirmed_count(self):
-        return self.registrations.filter(status="confirmed").count()
+        return self.registrations.filter(
+            status="confirmed"
+        ).count()
 
     @property
     def available_spots(self):
@@ -65,10 +94,14 @@ class Event(models.Model):
         errors = {}
 
         if self.start_time >= self.end_time:
-            errors["end_time"] = "Start time must be before end time."
+            errors["end_time"] = (
+                "Start time must be before end time."
+            )
 
         if self.capacity < 1:
-            errors["capacity"] = "Capacity must be at least 1."
+            errors["capacity"] = (
+                "Capacity must be at least 1."
+            )
 
         if self.pk:
             previous_status = (
@@ -79,12 +112,16 @@ class Event(models.Model):
             )
 
             if previous_status is not None and self.status != previous_status:
-                allowed_statuses = self.ALLOWED_TRANSITIONS.get(previous_status, [])
+                allowed_statuses = self.ALLOWED_TRANSITIONS.get(
+                    previous_status, []
+                )
+
                 if self.status not in allowed_statuses:
                     errors["status"] = (
                         f"Cannot transition from {previous_status} "
                         f"to {self.status}."
                     )
+
         elif self.status != self.Status.DRAFT:
             errors["status"] = "New events must start as Draft."
 
