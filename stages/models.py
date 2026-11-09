@@ -1,7 +1,6 @@
-from django.db import models
-
 from django.conf import settings
 from django.core.exceptions import ValidationError
+from django.core.validators import MinValueValidator
 from django.db import models
 
 from events.models import Event
@@ -15,7 +14,11 @@ class Stage(models.Model):
     )
     title = models.CharField(max_length=200)
     description = models.TextField(blank=True)
-    order = models.PositiveIntegerField()
+
+    order = models.PositiveIntegerField(
+        validators=[MinValueValidator(1)]
+    )
+
     start_time = models.DateTimeField()
     end_time = models.DateTimeField()
 
@@ -32,12 +35,17 @@ class Stage(models.Model):
         return f"{self.event.title} - {self.title}"
 
     def clean(self):
-        if self.start_time and self.end_time and self.end_time <= self.start_time:
-            raise ValidationError("end_time must be after start_time.")
+        if (
+            self.start_time
+            and self.end_time
+            and self.end_time <= self.start_time
+        ):
+            raise ValidationError(
+                "end_time must be after start_time."
+            )
 
 
 class StageRole(models.Model):
-
     SUGGESTED_ROLES = ["speaker", "judge", "coach"]
 
     stage = models.ForeignKey(
