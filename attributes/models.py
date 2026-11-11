@@ -12,28 +12,14 @@ class Attribute(models.Model):
         BOOLEAN = "boolean", "Boolean"
         DATE = "date", "Date"
 
-    event = models.ForeignKey(
-        Event,
-        on_delete=models.CASCADE,
-        related_name="attributes",
-        default=None,
-    )
-    name = models.CharField(max_length=100)
+    name = models.CharField(max_length=100, unique=True)
     data_type = models.CharField(
         max_length=20,
         choices=DataType.choices,
     )
 
-    class Meta:
-        constraints = [
-            models.UniqueConstraint(
-                fields=["event", "name"],
-                name="unique_attribute_name_per_event",
-            )
-        ]
-
     def __str__(self):
-        return f"{self.event.title} - {self.name}"
+        return f"{self.name} ({self.data_type})"
 
 
 class EventAttributeValue(models.Model):
@@ -45,12 +31,17 @@ class EventAttributeValue(models.Model):
         "date": "value_date",
     }
 
-    attribute = models.OneToOneField(
-        Attribute,
+    event = models.ForeignKey(
+        Event,
         on_delete=models.CASCADE,
-        related_name="value",
+        related_name="attribute_values",
+        default=None
     )
-
+    attribute = models.ForeignKey(
+        Attribute,
+        on_delete=models.PROTECT,
+        related_name="event_values",
+    )
     value_string = models.CharField(
         max_length=255,
         null=True,
@@ -65,6 +56,17 @@ class EventAttributeValue(models.Model):
     )
     value_boolean = models.BooleanField(null=True, blank=True)
     value_date = models.DateField(null=True, blank=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=["event", "attribute"],
+                name="unique_attribute_per_event",
+            )
+        ]
+
+    def __str__(self):
+        return f"{self.event} | {self.attribute.name} = {self.value}"
 
     @property
     def value(self):
@@ -85,5 +87,6 @@ class EventAttributeValue(models.Model):
 
         if filled_fields != [expected_field]:
             raise ValidationError(
-                f"Only {expected_field} must contain a value."
+                f"Only {expected_field} must contain a value "
+                f"(attribute type: {self.attribute.data_type})."
             )
