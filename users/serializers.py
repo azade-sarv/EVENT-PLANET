@@ -1,4 +1,3 @@
-# ==================== users/serializers.py ====================
 from django.contrib.auth import authenticate
 from django.contrib.auth.password_validation import validate_password
 from django.core.exceptions import ValidationError as DjangoValidationError
