@@ -33,6 +33,11 @@ class Event(models.Model):
         CLOSED = "closed", "Closed"
         FINISHED = "finished", "Finished"
 
+    class EventType(models.TextChoices):
+        WORKSHOP = "workshop", "Workshop"
+        WEBINAR = "webinar", "Webinar"
+        TOURNAMENT = "tournament", "Tournament"
+
     ALLOWED_TRANSITIONS = {
         Status.DRAFT: [Status.PUBLISHED],
         Status.PUBLISHED: [Status.CLOSED],
@@ -48,11 +53,14 @@ class Event(models.Model):
 
     title = models.CharField(max_length=200)
     description = models.TextField(blank=True)
+    event_type = models.CharField(
+        max_length=20,
+        choices=EventType.choices,
+        default=EventType.WORKSHOP,
+    )
     start_time = models.DateTimeField()
     end_time = models.DateTimeField()
-    capacity = models.PositiveIntegerField(
-        validators=[MinValueValidator(1)]
-    )
+    capacity = models.PositiveIntegerField(validators=[MinValueValidator(1)])
     status = models.CharField(
         max_length=20,
         choices=Status.choices,
@@ -69,22 +77,16 @@ class Event(models.Model):
 
     @property
     def average_rating(self):
-        avg = self.registrations.aggregate(
-            avg=Avg("feedback__rating")
-        )["avg"]
+        avg = self.registrations.aggregate(avg=Avg("feedback__rating"))["avg"]
         return round(avg, 2) if avg is not None else None
 
     @property
     def feedback_count(self):
-        return self.registrations.filter(
-            feedback__isnull=False
-        ).count()
+        return self.registrations.filter(feedback__isnull=False).count()
 
     @property
     def confirmed_count(self):
-        return self.registrations.filter(
-            status="confirmed"
-        ).count()
+        return self.registrations.filter(status="confirmed").count()
 
     @property
     def available_spots(self):
@@ -94,14 +96,10 @@ class Event(models.Model):
         errors = {}
 
         if self.start_time >= self.end_time:
-            errors["end_time"] = (
-                "Start time must be before end time."
-            )
+            errors["end_time"] = "Start time must be before end time."
 
         if self.capacity < 1:
-            errors["capacity"] = (
-                "Capacity must be at least 1."
-            )
+            errors["capacity"] = "Capacity must be at least 1."
 
         if self.pk:
             previous_status = (
@@ -112,14 +110,11 @@ class Event(models.Model):
             )
 
             if previous_status is not None and self.status != previous_status:
-                allowed_statuses = self.ALLOWED_TRANSITIONS.get(
-                    previous_status, []
-                )
+                allowed_statuses = self.ALLOWED_TRANSITIONS.get(previous_status, [])
 
                 if self.status not in allowed_statuses:
                     errors["status"] = (
-                        f"Cannot transition from {previous_status} "
-                        f"to {self.status}."
+                        f"Cannot transition from {previous_status} to {self.status}."
                     )
 
         elif self.status != self.Status.DRAFT:

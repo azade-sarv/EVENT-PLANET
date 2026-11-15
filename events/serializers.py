@@ -9,6 +9,10 @@ class EventSerializer(serializers.ModelSerializer):
     )
     confirmed_count = serializers.IntegerField(read_only=True)
     available_spots = serializers.IntegerField(read_only=True)
+    event_type = serializers.ChoiceField(
+        choices=Event.EventType.choices,
+        default=Event.EventType.WORKSHOP,
+    )
 
     class Meta:
         model = Event
@@ -16,6 +20,7 @@ class EventSerializer(serializers.ModelSerializer):
             "id",
             "title",
             "description",
+            "event_type",
             "start_time",
             "end_time",
             "capacity",
@@ -67,6 +72,7 @@ class PublicEventSerializer(serializers.ModelSerializer):
             "id",
             "title",
             "description",
+            "event_type",
             "start_time",
             "end_time",
             "capacity",
