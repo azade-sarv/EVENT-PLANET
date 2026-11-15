@@ -4,25 +4,36 @@ from decimal import Decimal
 from rest_framework import serializers
 
 from events.models import Event
-from .models import Attribute, EventAttributeValue
+from .models import Attribute, EventTypeAttribute, EventAttributeValue
 
 
 class AttributeSerializer(serializers.ModelSerializer):
+    event_types = serializers.SerializerMethodField()
+
     class Meta:
         model = Attribute
-        fields = ("id", "name", "data_type")
+        fields = ("id", "name", "data_type", "scope", "event", "event_types")
         read_only_fields = ("id",)
 
-    def validate_data_type(self, value):
-        if (
-            self.instance is not None
-            and value != self.instance.data_type
-            and self.instance.event_values.exists()
-        ):
+    def get_event_types(self, obj):
+        return list(obj.event_type_links.values_list("event_type", flat=True))
+
+    def validate_event(self, event):
+        user = self.context["request"].user
+        if event.organizer != user:
             raise serializers.ValidationError(
-                "Cannot change data_type while this attribute is used by events."
+                "You can only set attributes for your own events."
             )
-        return value
+        return event
+
+
+class EventTypeAttributeSerializer(serializers.ModelSerializer):
+    attribute_name = serializers.CharField(source="attribute.name", read_only=True)
+
+    class Meta:
+        model = EventTypeAttribute
+        fields = ("id", "event_type", "attribute", "attribute_name")
+        read_only_fields = ("id",)
 
 
 class TypedValueField(serializers.Field):
@@ -95,4 +106,26 @@ class EventAttributeValueSerializer(serializers.ModelSerializer):
         if self.instance is not None:
             qs = qs.exclude(pk=self.instance.pk)
         if qs.exists():
-            raise serializers.ValidationError
+            raise serializers.ValidationError(
+                {"attribute": "This attribute already has a value for this event."}
+            )
+
+        target_field = EventAttributeValue.VALUE_FIELDS[attribute.data_type]
+
+        if "value" in attrs:
+            try:
+                new_value = self.COERCERS[attribute.data_type].run_validation(
+                    attrs.pop("value")
+                )
+            except serializers.ValidationError as exc:
+                raise serializers.ValidationError({"value": exc.detail})
+        elif self.instance is not None:
+            new_value = getattr(self.instance, target_field)
+        else:
+            raise serializers.ValidationError({"value": "This field is required."})
+
+        for field in EventAttributeValue.VALUE_FIELDS.values():
+            attrs[field] = None
+        attrs[target_field] = new_value
+
+        return attrs
