@@ -45,7 +45,7 @@ class Attribute(models.Model):
                 name="unique_event_attribute_name",
             ),
             models.CheckConstraint(
-                check=(
+                condition=(
                     Q(scope="global", event__isnull=True)
                     | Q(scope="event", event__isnull=False)
                 ),
