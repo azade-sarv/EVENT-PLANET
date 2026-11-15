@@ -26,5 +26,5 @@ urlpatterns = [
     path("api/", include("stages.urls")),
     path("api/", include("attributes.urls")),
     path("api/", include("feedback.urls")),
-    path("api/", include("feedback.urls")),
+    path("api/", include("result.urls")),
 ]
