@@ -1,3 +1,4 @@
+# ==================== results/admin.py ====================
 from django.contrib import admin
 
 from .models import EventResult, ResultEntry
@@ -5,16 +6,20 @@ from .models import EventResult, ResultEntry
 
 class ResultEntryInline(admin.TabularInline):
     model = ResultEntry
-    extra = 1
-    fields = ("entry_type", "label", "participant", "rank", "score", "notes")
+    extra = 0
 
 
 @admin.register(EventResult)
 class EventResultAdmin(admin.ModelAdmin):
-    list_display = ("event", "is_published", "published_at", "entries_count")
+    list_display = ("id", "event", "is_published", "published_at")
     list_filter = ("is_published",)
-    inlines = [ResultEntryInline]
+    search_fields = ("event__title",)
+    readonly_fields = ("published_at",)
+    inlines = (ResultEntryInline,)
 
-    @admin.display(description="Entries")
-    def entries_count(self, obj):
-        return obj.entries.count()
+
+@admin.register(ResultEntry)
+class ResultEntryAdmin(admin.ModelAdmin):
+    list_display = ("id", "result", "entry_type", "label", "rank", "score")
+    list_filter = ("entry_type",)
+    search_fields = ("label", "participant__username", "result__event__title")
