@@ -59,15 +59,16 @@ class Attribute(models.Model):
         return f"{self.name} ({self.data_type})"
 
     def clean(self):
+        errors = {}
+
         if self.scope == self.Scope.EVENT and self.event_id is None:
-            raise ValidationError(
-                {"event": "Event-scoped attributes must belong to an event."}
-            )
+            errors["event"] = "Event-scoped attributes must belong to an event."
 
         if self.scope == self.Scope.GLOBAL and self.event_id is not None:
-            raise ValidationError(
-                {"event": "Global attributes cannot be tied to an event."}
-            )
+            errors["event"] = "Global attributes cannot be tied to an event."
+
+        if errors:
+            raise ValidationError(errors)
 
 
 class EventTypeAttribute(models.Model):

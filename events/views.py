@@ -44,4 +44,4 @@ class PublicEventViewSet(viewsets.ReadOnlyModelViewSet):
     def get_queryset(self):
         return Event.objects.filter(
             status=Event.Status.PUBLISHED
-        ).order_by("start_time") 
+        ).prefetch_related("attribute_values__attribute").order_by("start_time")

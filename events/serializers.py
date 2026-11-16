@@ -1,4 +1,6 @@
 from rest_framework import serializers
+from attributes.serializers import PublicEventAttributeValueSerializer
+from results.serializers import PublicEventResultSerializer
 
 from .models import Event
 
@@ -65,6 +67,11 @@ class PublicEventSerializer(serializers.ModelSerializer):
     available_spots = serializers.IntegerField(read_only=True)
     average_rating = serializers.FloatField(read_only=True)
     feedback_count = serializers.IntegerField(read_only=True)
+    attributes = PublicEventAttributeValueSerializer(
+        source="attribute_values",
+        many=True,
+        read_only=True,
+    )
 
     class Meta:
         model = Event
@@ -80,6 +87,7 @@ class PublicEventSerializer(serializers.ModelSerializer):
             "average_rating",
             "feedback_count",
             "organizer_username",
+            "attributes",
         )
 
 
