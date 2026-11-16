@@ -3,6 +3,12 @@ from rest_framework import serializers
 from .models import Stage, StageRole
 
 
+class PublicStageSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Stage
+        fields = ("id", "title", "description", "order", "start_time", "end_time")
+
+
 class StageSerializer(serializers.ModelSerializer):
     roles = serializers.SerializerMethodField()
 

@@ -1,6 +1,7 @@
 from rest_framework import serializers
 from attributes.serializers import PublicEventAttributeValueSerializer
 from results.serializers import PublicEventResultSerializer
+from stages.serializers import PublicStageSerializer
 
 from .models import Event
 
@@ -72,6 +73,7 @@ class PublicEventSerializer(serializers.ModelSerializer):
         many=True,
         read_only=True,
     )
+    stages = PublicStageSerializer(many=True, read_only=True)
 
     class Meta:
         model = Event
@@ -88,6 +90,7 @@ class PublicEventSerializer(serializers.ModelSerializer):
             "feedback_count",
             "organizer_username",
             "attributes",
+            "stages",
         )
 
 
