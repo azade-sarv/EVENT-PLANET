@@ -1,0 +1,41 @@
+# محیط مجازی
+venv/
+.venv/
+env/
+ENV/
+
+# کش پایتون
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.coverage
+htmlcov/
+
+# متغیرهای محیطی و اسرار
+.env
+.env.*
+!.env.example
+
+# گیت
+.git/
+.gitignore
+
+# خروجی‌های محلی
+staticfiles/
+media/
+*.sqlite3
+db.sqlite3
+*.log
+
+# تنظیمات ویرایشگر و سیستم‌عامل
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# خود داکر
+Dockerfile
+docker-compose.yml
+.dockerignore
