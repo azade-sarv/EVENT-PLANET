@@ -304,9 +304,7 @@ erDiagram
 
 ## Local development
 
-The repository currently has no dependency manifest (`requirements.txt` or `pyproject.toml`). The current development environment reports Django 6.1.2, Django REST Framework 3.18.3, python-decouple 3.8, and psycopg2-binary 2.9.13. These are environment versions, not a locked project dependency specification.
-
-Create and activate a virtual environment, then install the packages:
+Create and activate a virtual environment, then install the pinned packages:
 
 ```bash
 python -m venv .venv
@@ -315,10 +313,11 @@ source .venv/bin/activate
 # Windows PowerShell:
 .\.venv\Scripts\Activate.ps1
 
-python -m pip install Django==6.1.2 djangorestframework==3.18.3 python-decouple==3.8 psycopg2-binary==2.9.13
+python -m pip install -r requirements.txt
 ```
 
-Create a PostgreSQL database and user, then add a root `.env` file:
+Create a PostgreSQL database and user, then add a root `.env` file. The
+development settings require `SECRET_KEY` and the database connection values:
 
 ```dotenv
 SECRET_KEY=replace-with-a-long-random-secret
@@ -354,7 +353,43 @@ ALLOWED_HOSTS=events.example.com
 CSRF_TRUSTED_ORIGINS=https://events.example.com
 ```
 
-## Docker status
+## Docker Compose
 
-No `Dockerfile` or `docker-compose.yml` is currently present in the repository,
-so Docker-based startup instructions are not available yet.
+Docker Compose starts the Django app and PostgreSQL. From the repository root,
+create a `.env` file with the values below (replace the example secrets):
+
+```dotenv
+SECRET_KEY=replace-with-a-long-random-secret
+DB_NAME=event_planet
+DB_USER=event_planet_user
+DB_PASSWORD=replace-with-a-strong-database-password
+```
+
+These are the values Compose needs from the `.env` file. It sets `DB_HOST=db`
+and `DB_PORT=5432` for the web container, and configures PostgreSQL using
+`DB_NAME`, `DB_USER`, and `DB_PASSWORD`. The Django settings module in Compose
+is `config.settings.dev`.
+
+Build and start the services:
+
+```bash
+docker compose up --build
+```
+
+The web container waits for PostgreSQL to become healthy and applies database
+migrations on startup. The API is then available at `http://localhost:8000/`.
+To run in the background, use `docker compose up --build -d`; view its output
+with `docker compose logs -f web`. Stop the services with `docker compose down`.
+The PostgreSQL data is kept in the `postgres_data` named volume when services
+are stopped. Do not commit `.env` or real secrets.
+
+Create a Django superuser in the running web container:
+
+```bash
+docker compose exec web python manage.py createsuperuser
+```
+
+Follow the prompts for the username, email, and password, then sign in to the
+Django admin at `http://localhost:8000/admin/`. This creates a Django
+superuser; its administrative privileges are separate from the application's
+Participant/Organizer role.
